@@ -148,96 +148,73 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 
 // WechatCallback 微信登录回调（接收账号中心回调）
 // @Summary 微信登录回调
-// @Description 接收账号中心回调，验证token并创建本地用户
+// @Description 接收账号中心回调的code，换取token并创建本地用户
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param userId query string true "账号中心用户ID"
-// @Param token query string true "账号中心token"
+// @Param code query string true "微信授权码"
+// @Param type query string true "登录类型 (open/mp)"
 // @Success 302 {string} string "重定向到前端"
 // @Router /api/v1/auth/wechat/callback [get]
 func (h *AuthHandler) WechatCallback(c *gin.Context) {
-	userId := c.Query("userId")
-	authCenterToken := c.Query("token")
+	code := c.Query("code")
+	loginType := c.Query("type") // "open" (开放平台) 或 "mp" (公众号)
 
 	// 验证参数
-	if userId == "" || authCenterToken == "" {
-		c.Redirect(http.StatusFound, "/login?error=missing_params")
+	if code == "" {
+		c.Redirect(http.StatusFound, "/login?error=missing_code")
 		return
 	}
 
-	// 调用账号中心验证 token
-	verifyReqBody, _ := json.Marshal(map[string]string{
-		"token": authCenterToken,
+	// 调用账号中心的微信登录API，用code换取token和用户信息
+	// POST https://os.crazyaigc.com/api/auth/wechat/login
+	// Body: {"code": "xxx", "type": "open"}
+	loginReqBody, _ := json.Marshal(map[string]string{
+		"code": code,
+		"type": loginType,
 	})
 
-	verifyResp, err := http.Post(
-		"https://os.crazyaigc.com/api/auth/verify-token",
+	loginResp, err := http.Post(
+		"https://os.crazyaigc.com/api/auth/wechat/login",
 		"application/json",
-		bytes.NewBuffer(verifyReqBody),
+		bytes.NewBuffer(loginReqBody),
 	)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/login?error=verify_failed")
+		c.Redirect(http.StatusFound, "/login?error=auth_center_failed")
 		return
 	}
-	defer verifyResp.Body.Close()
+	defer loginResp.Body.Close()
 
-	var verifyResult struct {
+	var loginResult struct {
 		Success bool `json:"success"`
 		Data    struct {
-			Valid  bool   `json:"valid"`
-			UserID string `json:"userId"`
+			UserID      string                 `json:"userId"`
+			Token       string                 `json:"token"`
+			UnionID     string                 `json:"unionId"`
+			PhoneNumber string                 `json:"phoneNumber"`
+			Profile     map[string]interface{} `json:"profile"`
 		} `json:"data"`
 		Message string `json:"message"`
 	}
-	if err := json.NewDecoder(verifyResp.Body).Decode(&verifyResult); err != nil {
+	if err := json.NewDecoder(loginResp.Body).Decode(&loginResult); err != nil {
 		c.Redirect(http.StatusFound, "/login?error=decode_failed")
 		return
 	}
 
-	// 验证 token
-	if !verifyResult.Success || !verifyResult.Data.Valid || verifyResult.Data.UserID != userId {
-		c.Redirect(http.StatusFound, "/login?error=invalid_token")
-		return
-	}
-
-	// 调用账号中心获取用户信息（获取头像昵称）
-	req, _ := http.NewRequest("GET", "https://os.crazyaigc.com/api/auth/user-info", nil)
-	req.Header.Set("Authorization", "Bearer "+authCenterToken)
-
-	userInfoResp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		c.Redirect(http.StatusFound, "/login?error=get_user_info_failed")
-		return
-	}
-	defer userInfoResp.Body.Close()
-
-	var userInfoResult struct {
-		Success bool `json:"success"`
-		Data    struct {
-			UserID  string                 `json:"userId"`
-			Profile map[string]interface{} `json:"profile"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(userInfoResp.Body).Decode(&userInfoResult); err != nil {
-		c.Redirect(http.StatusFound, "/login?error=decode_user_info_failed")
-		return
-	}
-
-	if !userInfoResult.Success {
-		c.Redirect(http.StatusFound, "/login?error=user_info_failed")
+	if !loginResult.Success {
+		c.Redirect(http.StatusFound, "/login?error="+loginResult.Message)
 		return
 	}
 
 	// 从 profile 获取用户信息
 	var nickname, avatarUrl interface{}
-	if userInfoResult.Data.Profile != nil {
-		nickname = userInfoResult.Data.Profile["nickname"]
-		avatarUrl = userInfoResult.Data.Profile["avatarUrl"]
+	if loginResult.Data.Profile != nil {
+		nickname = loginResult.Data.Profile["nickname"]
+		avatarUrl = loginResult.Data.Profile["avatarUrl"]
 	}
 
 	// 创建或获取本地用户
-	user, err := h.userService.SyncUserFromAuthCenter(userId, nickname, avatarUrl)
+	user, err := h.userService.SyncUserFromAuthCenter(loginResult.Data.UserID, nickname, avatarUrl)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/login?error=user_creation_failed")
 		return

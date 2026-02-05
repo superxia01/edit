@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Business</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">Edit Business</div>
+      <div class="support-link">
+        <a href="https://edit.crazyaigc.com/dashboard?from=from_copylink" target="_blank"
+          rel="noopener noreferrer">
+          查看数据
+        </a>
+      </div>
+      <div class="author">小红书@KeenChase</div>
+    </div>
+
+    <!-- 共用的状态反馈框 - 移到Tab切换按钮上方 -->
+    <div id="status" class="status-text"></div>
+
+    <!-- Tab切换容器 -->
+    <div class="tab-container">
+      <div class="tabs">
+        <button id="singleCaptureTab" class="tab-button active">单篇笔记</button>
+        <button id="captureTab" class="tab-button">博主笔记</button>
+        <button id="bloggerInfoTab" class="tab-button">博主信息</button>
+        <button id="configTab" class="tab-button">设置</button>
+      </div>
+      <div class="tab-content">
+        <!-- 修改单篇采集Tab内容区域，统一使用capture-section类 -->
+        <div id="singleCaptureContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开笔记详情页再采集单篇笔记</p>
+            <button id="startSingleCaptureBtn">开始采集</button>
+          </div>
+
+          <div class="results-button-container">
+            <button id="clearSingleCaptureBtn" disabled>清空</button>
+            <button id="exportSingleExcelBtn" disabled>刷新列表</button>
+            <button id="downloadMediaBtn" disabled>下载图视</button>
+            <button id="syncSingleFeishuBtn" disabled>同步数据</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="singleCapturedNotesContainer">
+              <p style="text-align: center; color: #999; margin: 20px 0;">暂无采集的笔记</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 开始捕获Tab内容 -->
+        <div id="captureContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开博主主页再采集全部笔记</p>
+            <button id="startCaptureBtn">开始采集</button>
+          </div>
+
+          <!-- 新增容器，放置刷新列表和同步到飞书按钮 -->
+          <div class="results-button-container">
+            <button id="clearAllBtn" disabled>清空</button>
+            <button id="exportExcelBtn" disabled>刷新列表</button>
+            <button id="syncFeishuBtn" disabled>同步数据</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="capturedLinksContainer"></div>
+          </div>
+        </div>
+
+        <!-- 博主信息Tab内容 -->
+        <div id="bloggerInfoContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开小红书博主主页再开始采集</p>
+            <button id="startBloggerCaptureBtn">开始采集</button>
+          </div>
+
+          <!-- 新增容器，放置刷新列表和同步到飞书按钮 -->
+          <div class="results-button-container">
+            <button id="clearBloggerBtn" disabled>清空</button>
+            <button id="exportBloggerExcelBtn" disabled>刷新列表</button>
+            <button id="syncBloggerFeishuBtn" disabled>同步数据</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="bloggerInfoContainer"></div>
+          </div>
+        </div>
+
+        <!-- 设置Tab内容 -->
+        <div id="configContent" class="tab-pane">
+          <div class="config-section">
+            <h3>API Key 配置</h3>
+            <p class="config-tip">
+              请输入 API Key 以使用插件同步功能。
+              <a href="https://edit.crazyaigc.com/settings" target="_blank">点击此处生成 API Key</a>
+            </p>
+
+            <div class="form-group">
+              <label>API Key <span class="required">*</span></label>
+              <input
+                type="password"
+                id="apiKey"
+                placeholder="eb_xxxx...（请输入完整的API Key）"
+                style="display: block; margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+              />
+            </div>
+
+            <div class="config-actions">
+              <button id="saveApiKeyBtn" class="btn-primary" style="padding: 8px 16px; font-size: 14px;">保存</button>
+            </div>
+
+            <div id="apiKeyStatus" class="api-key-status"></div>
+
+            <div class="help-section">
+              <h4>如何获取 API Key？</h4>
+              <ol>
+                <li>访问 <a href="https://edit.crazyaigc.com" target="_blank">edit.crazyaigc.com</a> 并登录</li>
+                <li>进入"设置"页面</li>
+                <li>在"API Key"部分，点击"创建API Key"</li>
+                <li>输入名称（如"Chrome插件"）并创建</li>
+                <li>复制生成的 API Key 并粘贴到上方输入框</li>
+                <li>点击保存按钮</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+  </div>
+  <script src="api-config.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>xhs2feishu</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">xhs2feishu</div>
+      <div class="support-link">
+        <a href="https://gobiggroup.feishu.cn/wiki/QWDOwWvPYiZfb2kXuwqc8fQanmb?from=from_copylink" target="_blank"
+          rel="noopener noreferrer">
+          帮助中心
+        </a>
+      </div>
+      <div class="author">小红书@坤诚科技</div>
+    </div>
+
+    <!-- 共用的状态反馈框 - 移到Tab切换按钮上方 -->
+    <div id="status" class="status-text"></div>
+
+    <!-- Tab切换容器 -->
+    <div class="tab-container">
+      <div class="tabs">
+        <button id="singleCaptureTab" class="tab-button active">单篇笔记</button>
+        <button id="captureTab" class="tab-button">博主笔记</button>
+        <button id="bloggerInfoTab" class="tab-button">博主信息</button>
+        <button id="configTab" class="tab-button">设置</button>
+      </div>
+      <div class="tab-content">
+        <!-- 修改单篇采集Tab内容区域，统一使用capture-section类 -->
+        <div id="singleCaptureContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开笔记详情页再采集单篇笔记</p>
+            <button id="startSingleCaptureBtn">开始采集</button>
+          </div>
+
+          <div class="results-button-container">
+            <button id="clearSingleCaptureBtn" disabled>清空</button>
+            <button id="exportSingleExcelBtn" disabled>刷新列表</button>
+            <button id="downloadMediaBtn" disabled>下载图视</button>
+            <button id="syncSingleFeishuBtn" disabled>同步飞书</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="singleCapturedNotesContainer">
+              <p style="text-align: center; color: #999; margin: 20px 0;">暂无采集的笔记</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 开始捕获Tab内容 -->
+        <div id="captureContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开博主主页再采集全部笔记</p>
+            <button id="startCaptureBtn">开始采集</button>
+          </div>
+
+          <!-- 新增容器，放置刷新列表和同步到飞书按钮 -->
+          <div class="results-button-container">
+            <button id="clearAllBtn" disabled>清空</button>
+            <button id="exportExcelBtn" disabled>刷新列表</button>
+            <button id="syncFeishuBtn" disabled>同步飞书</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="capturedLinksContainer"></div>
+          </div>
+        </div>
+
+        <!-- 博主信息Tab内容 -->
+        <div id="bloggerInfoContent" class="tab-pane">
+          <div class="capture-section">
+            <p class="capture-tip">请打开小红书博主主页再开始采集</p>
+            <button id="startBloggerCaptureBtn">开始采集</button>
+          </div>
+
+          <!-- 新增容器，放置刷新列表和同步到飞书按钮 -->
+          <div class="results-button-container">
+            <button id="clearBloggerBtn" disabled>清空</button>
+            <button id="exportBloggerExcelBtn" disabled>刷新列表</button>
+            <button id="syncBloggerFeishuBtn" disabled>同步飞书</button>
+          </div>
+
+          <div class="cards-container">
+            <div id="bloggerInfoContainer"></div>
+          </div>
+        </div>
+
+        <!-- 设置Tab内容 -->
+        <div id="configContent" class="tab-pane">
+          <!-- 未配置状态 -->
+          <div id="unconfiguredState" class="config-state">
+            <div class="config-header">
+              <h3>🔧 配置设置</h3>
+              <p class="config-tip">请先输入用户编号，然后配置飞书相关参数</p>
+            </div>
+
+            <!-- 用户信息输入区 -->
+            <div class="user-config-section">
+              <div class="form-group">
+                <label>用户编号 <span class="required">*</span></label>
+                <input type="text" id="ordeid" placeholder="请输入用户编号">
+              </div>
+              <div class="config-actions small-gap">
+                <button id="checkUserBtn" class="btn-secondary btn-small">验证用户</button>
+              </div>
+            </div>
+
+            <!-- 飞书配置输入区 (初始隐藏) -->
+            <div id="feishuConfigSection" style="display: none;">
+              <div class="config-section-title">
+                <h4>飞书配置</h4>
+                <p class="section-desc">配置飞书多维表格相关参数</p>
+              </div>
+
+              <div class="form-group">
+                <label>多维表格授权码 <span class="required">*</span></label>
+                <input type="text" id="basetoken" placeholder="请输入多维表格的授权码(t-开头)">
+              </div>
+
+              <div class="form-group">
+                <label>「采集库」表格链接 <span class="required">*</span></label>
+                <input type="text" id="knowledgeurl" placeholder="请输入「采集库」表格链接">
+              </div>
+
+              <div class="form-group">
+                <label>「小红书博主库」表格链接</label>
+                <input type="text" id="bloggerurl" placeholder="请输入「小红书博主库」表格链接">
+              </div>
+
+              <div class="form-group">
+                <label>「小红书博主笔记」表格链接</label>
+                <input type="text" id="blogger_noteurl" placeholder="请输入「小红书博主笔记」表格链接">
+              </div>
+
+              <div class="config-actions">
+                <button id="saveConfigBtn" class="btn-primary btn-small">保存到云端</button>
+                <button id="saveLocalBtn" class="btn-secondary btn-small">仅保存本地</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 已配置状态 -->
+          <div id="configuredState" class="config-state" style="display: none;">
+            <!-- 用户信息展示区 -->
+            <div class="user-info-section">
+              <div class="user-card">
+                <div class="user-card-header">
+                  <div class="user-avatar">👤</div>
+                  <div class="user-details">
+                    <h4>用户信息</h4>
+                    <div class="user-meta">
+                      <span class="user-id">编号: <strong id="displayUserId">-</strong></span>
+                      <span class="user-plan">套餐: <strong id="displayPlanType">-</strong></span>
+                      <span class="user-status">状态: <strong id="displayStatus">-</strong></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="user-expiry">
+                  <span id="remainingDays" class="expiry-badge">-</span>
+                  <small id="displayExpireAt">-</small>
+                </div>
+                <div class="user-actions">
+                  <button id="editConfigBtn" class="btn-secondary btn-small">修改</button>
+                  <button id="syncConfigBtn" class="btn-outline btn-small">同步</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 配置状态展示区 -->
+            <div class="config-status-section">
+              <div class="status-item">
+                <span class="status-label">配置状态:</span>
+                <span id="configStatus" class="status-value">✅ 已同步到云端</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">最后更新:</span>
+                <span id="configUpdatedAt" class="status-value">-</span>
+              </div>
+            </div>
+
+            <!-- 配置编辑区 (可折叠) -->
+            <div id="configEditSection" class="config-edit-section">
+              <div class="section-header">
+                <h4>配置参数</h4>
+                <button id="toggleConfigEdit" class="btn-text">展开编辑 ▼</button>
+              </div>
+
+              <div id="configEditForm" class="config-form" style="display: none;">
+                <div class="form-group">
+                  <label>多维表格授权码</label>
+                  <input type="text" id="editBasetoken" placeholder="请输入多维表格的授权码">
+                </div>
+
+                <div class="form-group">
+                  <label>「采集库」表格链接</label>
+                  <input type="text" id="editKnowledgeurl" placeholder="请输入「采集库」表格链接">
+                </div>
+
+                <div class="form-group">
+                  <label>「小红书博主库」表格链接</label>
+                  <input type="text" id="editBloggerurl" placeholder="请输入「小红书博主库」表格链接">
+                </div>
+
+                <div class="form-group">
+                  <label>「小红书博主笔记」表格链接</label>
+                  <input type="text" id="editBloggerNoteurl" placeholder="请输入「小红书博主笔记」表格链接">
+                </div>
+
+                <div class="config-actions small-gap">
+                  <button id="updateConfigBtn" class="btn-primary btn-small">更新配置</button>
+                  <button id="cancelEditBtn" class="btn-secondary btn-small">取消</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="api-config.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+
+</html>

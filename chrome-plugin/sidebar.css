@@ -1,0 +1,969 @@
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 350px;
+  /*height: 120vh;*/
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #333333;
+  margin: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* 头部样式 */
+.header {
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+  text-transform: lowercase;
+}
+
+.support-link {
+  margin-bottom: 5px;
+}
+
+.support-link a {
+  color: #667eea;
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 4px 8px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.support-link a:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+.author {
+  font-size: 11px;
+  color: #999999;
+  margin-bottom: 10px;
+  display: none;
+}
+
+/* 状态反馈框样式 - 优化版 */
+.status-text {
+  text-align: center;
+  margin: 12px 0;
+  font-size: 13px;
+  color: #333333;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  white-space: normal;
+  line-height: 1.6;
+  word-wrap: break-word;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  min-height: 0;
+  display: none; /* 默认隐藏 */
+  position: relative;
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* 当状态框有内容时显示 */
+.status-text:not(:empty) {
+  display: block;
+}
+
+/* Tab切换容器样式 */
+.tab-container {
+  margin-bottom: 16px;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: -1px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.tab-button {
+  padding: 10px 8px;
+  background: transparent;
+  color: #666666;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  flex: 1;
+  font-size: 12px;
+  position: relative;
+  border-radius: 8px;
+  pointer-events: auto;
+  z-index: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.tab-button.active {
+  color: #667eea;
+  background: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.tab-content {
+  width: 100%;
+}
+
+.tab-pane {
+  display: none;
+  padding: 12px 0;
+  animation: fadeIn 0.3s ease;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* 配置页面特殊处理，确保在一屏内显示 */
+#configContent {
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  padding: 8px 0 16px 0;
+  box-sizing: border-box;
+}
+
+/* 配置状态容器确保内容不溢出 */
+.config-state {
+  padding-bottom: 20px !important; /* 减少底部间距，按钮现在是relative定位 */
+  min-height: 100% !important;
+  box-sizing: border-box !important;
+  background: white !important; /* 确保有白色背景 */
+  border-radius: 12px !important; /* 添加圆角 */
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  margin-bottom: 0 !important;
+  overflow: visible !important; /* 确保内容可见 */
+  position: relative !important;
+}
+
+#configContent.active {
+  display: flex;
+  flex-direction: column;
+}
+
+#feishuConfig {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 8px;
+}
+
+/* 配置页面滚动条样式 */
+#configContent::-webkit-scrollbar {
+  width: 4px;
+}
+
+#configContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#configContent::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+}
+
+#configContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* 捕获部分样式 */
+.capture-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.capture-tip {
+  margin-bottom: 16px;
+  color: #666666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.capture-section button {
+  width: 100%;
+  padding: 14px;
+  font-size: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.capture-section button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.capture-section button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.capture-section button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.capture-section button:active {
+  transform: translateY(0);
+}
+
+/* 结果按钮容器样式 */
+.results-button-container {
+  margin: 16px 0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.results-button-container button {
+  padding: 8px 14px;
+  font-size: 12px;
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.results-button-container button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.results-button-container button:disabled {
+  background: #f5f5f5;
+  color: #cccccc;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 表单样式 - 统一规范 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* 配置页面的表单组间距更小 */
+#feishuConfig .form-group {
+  margin-bottom: 8px;
+}
+
+/* 配置编辑区域的表单组间距 */
+.config-form .form-group {
+  margin-bottom: 12px;
+}
+
+/* 全局标签样式 */
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+/* 全局文本输入框样式 */
+input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #333333;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+input[type="text"]::placeholder {
+  color: #999999;
+}
+
+/* 保存配置按钮样式 - 修复溢出问题 */
+#saveConfigBtn {
+  width: 100% !important;
+  padding: 12px !important;
+  margin-top: 12px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+  position: relative !important; /* 改为相对定位 */
+  z-index: auto !important;
+  margin-bottom: 16px !important;
+  bottom: auto !important; /* 覆盖任何可能的bottom定位 */
+  float: none !important; /* 确保没有浮动影响 */
+}
+
+#saveConfigBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+#saveConfigBtn:active {
+  transform: translateY(0);
+}
+
+/* 卡片容器样式 */
+.cards-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  max-height: 400px;
+}
+
+/* 统一所有内容容器样式 */
+#singleCapturedNotesContainer, 
+#capturedLinksContainer, 
+#bloggerInfoContainer {
+  background: transparent;
+  padding: 0;
+}
+
+/* 卡片样式 - 优化间距和阴影 */
+.card {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* 图片容器样式 */
+.image-container {
+  position: relative;
+  width: 60px;
+  height: 80px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  margin-right: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 卡片数字样式 */
+.card-number {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 0 0 8px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 卡片内容样式 */
+.card-content {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333333;
+  text-decoration: none;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: color 0.3s ease;
+}
+
+.card-title:hover {
+  color: #667eea;
+}
+
+.card-author {
+  font-size: 11px;
+  color: #666666;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.card-likes {
+  font-size: 11px;
+  color: #666666;
+}
+
+/* 互动数据容器样式 */
+.card-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.card-stats .stat-item {
+  font-size: 11px;
+  color: #666666;
+  font-weight: 500;
+}
+
+/* 博主头像容器样式 */
+.blogger-avatar-container {
+  width: 60px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.blogger-avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 删除按钮样式 */
+.delete-button {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 6px 12px;
+  font-size: 10px;
+  background: rgba(255, 59, 48, 0.9);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+}
+
+.delete-button:hover {
+  background: rgba(255, 59, 48, 1);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
+}
+
+/* 隐藏所有导出Excel按钮 */
+#exportSingleExcelBtn, #exportExcelBtn, #exportBloggerExcelBtn {
+  display: none !important;
+}
+
+/* 滚动条样式 */
+.cards-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cards-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.cards-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+}
+
+.cards-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%);
+}
+
+/* 配置管理相关样式 */
+.config-state {
+  padding: 20px;
+}
+
+.config-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.config-header h3 {
+  color: #667eea;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.config-tip {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+.user-config-section {
+  background: #f8f9ff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e8ecff;
+}
+
+.config-section-title {
+  margin-bottom: 20px;
+}
+
+.config-section-title h4 {
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.section-desc {
+  color: #666;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* 表单标签样式统一 */
+.form-group label {
+  display: block;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.required {
+  color: #ff3b30;
+  margin-left: 4px;
+}
+
+/* 配置表单输入框特殊样式 */
+.config-form input[type="text"] {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d0d7ff;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.config-form input[type="text"]:focus {
+  border-color: #667eea;
+  background: white;
+}
+
+/* 已配置状态下的编辑表单优化 */
+.user-info-section + .config-edit-section .config-form {
+  margin-top: 12px !important;
+  border-color: #667eea !important;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%) !important;
+  margin-bottom: 0 !important; /* 移除底部间距，按钮现在在同一个容器内 */
+  padding: 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e8ecff !important;
+}
+
+/* 已配置状态下的编辑按钮组 - 现在在正确容器内 */
+#updateConfigBtn, #cancelEditBtn {
+  position: relative !important;
+  z-index: auto !important;
+  margin-top: 8px !important;
+  /* 按钮现在在白色容器内，不需要特殊的定位修复 */
+}
+
+.config-actions.small-gap {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+  margin-bottom: 8px !important;
+  padding-bottom: 8px !important;
+  background: transparent !important;
+  width: 100% !important;
+}
+
+.config-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+  position: relative !important;
+  z-index: 1 !important; /* 降低z-index，避免脱离容器 */
+  background: transparent !important; /* 改为透明，融入容器 */
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  float: none !important;
+  clear: both !important;
+}
+
+/* 重复的small-gap定义已移除，整合到上面 */
+
+.config-actions .btn-small {
+  font-size: 11px;
+  padding: 6px 12px;
+}
+
+/* 用户信息卡片样式 */
+.user-info-section {
+  margin-bottom: 16px;
+}
+
+.user-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-details h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.user-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-meta strong {
+  font-weight: 600;
+}
+
+.user-expiry {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+
+.user-expiry #displayExpireAt {
+  display: block;
+  font-size: 10px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.user-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.user-actions .btn-outline,
+.user-actions .btn-secondary {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+/* 到期状态样式 */
+.expiry-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.expiry-badge.warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.expiry-badge.expired {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+
+/* 配置状态展示 */
+.config-status-section {
+  background: #f8f9ff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e8ecff;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.status-label {
+  color: #666;
+  font-size: 12px;
+}
+
+.status-value {
+  color: #333;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-value.success {
+  color: #34c759;
+}
+
+/* 配置编辑区域 - 修复背景问题 */
+.config-edit-section {
+  margin-bottom: 16px;
+  background: white !important;  /* 添加白色背景 */
+  border-radius: 12px !important; /* 添加圆角 */
+  padding: 16px !important;     /* 添加内边距 */
+  border: 1px solid #f0f0f0 !important; /* 添加边框 */
+  margin-top: 16px !important;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h4 {
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-text:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.config-form {
+  background: #f8f9ff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e8ecff;
+}
+
+/* 按钮样式扩展 */
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: #f1f3f4;
+  color: #333;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-secondary:hover {
+  background: #e8eaed;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #667eea;
+  border: 1px solid #667eea;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-outline:hover {
+  background: #667eea;
+  color: white;
+}

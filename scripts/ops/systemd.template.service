@@ -1,0 +1,15 @@
+[Unit]
+Description=Edit Business API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/edit-business
+ExecStart=/var/www/edit-business/edit-business
+Restart=always
+RestartSec=5
+EnvironmentFile=/var/www/edit-business/.env
+
+[Install]
+WantedBy=multi-user.target

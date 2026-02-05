@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/keenchase/edit-business/internal/middleware"
 	"github.com/keenchase/edit-business/internal/service"
@@ -174,12 +176,18 @@ func (h *AuthHandler) WechatCallback(c *gin.Context) {
 		"type": loginType,
 	})
 
-	loginResp, err := http.Post(
+	// 创建带超时的HTTP客户端
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	loginResp, err := client.Post(
 		"https://os.crazyaigc.com/api/auth/wechat/login",
 		"application/json",
 		bytes.NewBuffer(loginReqBody),
 	)
 	if err != nil {
+		fmt.Printf("ERROR: 调用账号中心失败: %v\n", err)
 		c.Redirect(http.StatusFound, "/login?error=auth_center_failed")
 		return
 	}
@@ -197,12 +205,16 @@ func (h *AuthHandler) WechatCallback(c *gin.Context) {
 		Message string `json:"message"`
 	}
 	if err := json.NewDecoder(loginResp.Body).Decode(&loginResult); err != nil {
+		fmt.Printf("ERROR: 解析响应失败: %v\n", err)
 		c.Redirect(http.StatusFound, "/login?error=decode_failed")
 		return
 	}
 
 	if !loginResult.Success {
-		c.Redirect(http.StatusFound, "/login?error="+loginResult.Message)
+		fmt.Printf("ERROR: 账号中心返回错误: %s\n", loginResult.Message)
+		// URL编码错误信息
+	 errorMsg := url.QueryEscape(loginResult.Message)
+		c.Redirect(http.StatusFound, "/login?error="+errorMsg)
 		return
 	}
 
@@ -216,6 +228,7 @@ func (h *AuthHandler) WechatCallback(c *gin.Context) {
 	// 创建或获取本地用户
 	user, err := h.userService.SyncUserFromAuthCenter(loginResult.Data.UserID, nickname, avatarUrl)
 	if err != nil {
+		fmt.Printf("ERROR: 创建用户失败: %v\n", err)
 		c.Redirect(http.StatusFound, "/login?error=user_creation_failed")
 		return
 	}
@@ -223,6 +236,7 @@ func (h *AuthHandler) WechatCallback(c *gin.Context) {
 	// 生成本地 JWT token
 	jwtToken, err := middleware.GenerateToken(user.ID.String())
 	if err != nil {
+		fmt.Printf("ERROR: 生成token失败: %v\n", err)
 		c.Redirect(http.StatusFound, "/login?error=token_generation_failed")
 		return
 	}

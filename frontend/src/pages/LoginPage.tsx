@@ -1,20 +1,18 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
 
 export function LoginPage() {
-  const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // 处理登录错误信息
-  useEffect(() => {
-    const errorMsg = searchParams.get('error')
-    if (errorMsg && errorMsg !== '' && !error) {
-      setError(decodeURIComponent(errorMsg))
-      // 清除URL中的error参数
-      window.history.replaceState({}, '', '/login')
-    }
-  }, [searchParams])
+  // 页面加载时检查URL参数
+  const urlParams = new URLSearchParams(window.location.search)
+  const errorMsg = urlParams.get('error')
+  if (errorMsg && errorMsg !== '') {
+    setError(decodeURIComponent(errorMsg))
+    // 清除URL中的error参数，但保持页面不刷新
+    const newUrl = window.location.pathname
+    window.history.replaceState({}, '', newUrl)
+  }
 
   // 跳转到业务系统后端的微信登录代理接口
   const handleLogin = () => {

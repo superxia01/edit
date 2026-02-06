@@ -1949,15 +1949,15 @@ function syncBloggerInfoToFeishu() {
     showStatus('没有可同步的博主信息');
     return;
   }
-  
+
   showStatus('正在同步博主信息，请稍候...');
-  
+
   const apiKey = localStorage.getItem('edit-business-api-key');
   if (!apiKey) {
     showStatus('请先在设置中配置 API Key');
     return;
   }
-  
+
   const data = {
     xhsId: capturedBloggerInfo.bloggerId,
     bloggerName: capturedBloggerInfo.bloggerName,
@@ -1967,7 +1967,7 @@ function syncBloggerInfoToFeishu() {
     bloggerUrl: capturedBloggerInfo.bloggerUrl || '',
     captureTimestamp: Date.now()
   };
-  
+
   fetch(API_CONFIG.BASE_URL + '/api/v1/bloggers', {
     method: 'POST',
     headers: {
@@ -1988,4 +1988,356 @@ function syncBloggerInfoToFeishu() {
     console.error('博主信息同步失败:', error);
     showStatus('同步失败：' + error.message);
   });
+}
+
+// ============================================
+// 七牛云图片上传功能
+// ============================================
+
+// 缓存上传token，避免重复请求
+let cachedQiniuToken = null;
+let tokenExpireTime = 0;
+
+/**
+ * 获取七牛云上传token
+ * @returns {Promise<{uploadToken: string, cdnDomain: string, keyPrefix: string}>}
+ */
+async function getQiniuToken() {
+  // 检查缓存是否有效
+  if (cachedQiniuToken && Date.now() < tokenExpireTime) {
+    return cachedQiniuToken;
+  }
+
+  const apiKey = localStorage.getItem('edit-business-api-key');
+  if (!apiKey) {
+    throw new Error('请先在设置中配置 API Key');
+  }
+
+  try {
+    const response = await fetch(API_CONFIG.BASE_URL + '/api/v1/qiniu/upload-token', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`获取上传token失败: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // 缓存token (提前5分钟过期)
+    tokenExpireTime = Date.now() + (data.expiresIn - 300) * 1000;
+    cachedQiniuToken = {
+      uploadToken: data.uploadToken,
+      cdnDomain: data.cdnDomain,
+      keyPrefix: data.keyPrefix
+    };
+
+    return cachedQiniuToken;
+  } catch (error) {
+    console.error('获取七牛云token失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 从小红书下载图片（使用浏览器上下文，有cookies）
+ * @param {string} imageUrl - 小红书图片URL
+ * @returns {Promise<Blob>}
+ */
+async function downloadImageFromXhs(imageUrl) {
+  try {
+    const response = await fetch(imageUrl, {
+      credentials: 'include', // 包含cookies，绕过防盗链
+      headers: {
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`下载图片失败: ${response.status}`);
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error('下载图片失败:', imageUrl, error);
+    throw error;
+  }
+}
+
+/**
+ * 上传图片到七牛云
+ * @param {Blob} file - 文件Blob对象
+ * @param {string} key - 文件key（路径）
+ * @param {string} token - 上传token
+ * @returns {Promise<string>} CDN URL
+ */
+function uploadToQiniu(file, key, token) {
+  return new Promise((resolve, reject) => {
+    try {
+      // 使用七牛云JS SDK上传
+      const observable = qiniu.upload(file, key, token, {
+        useCdnDomain: true,
+        region: qiniu.region.z0 // 华东区域
+      }, {
+        useCdnDomain: true,
+        disableStatisticsReport: false,
+        retryCount: 3,
+        checkChunkMD5: true
+      });
+
+      const subscription = observable.subscribe({
+        next(res) {
+          // 上传进度
+          console.log('上传进度:', res.total.percent + '%');
+        },
+        error(err) {
+          console.error('上传失败:', err);
+          reject(err);
+        },
+        complete(res) {
+          // 上传完成，返回CDN URL
+          const cdnDomain = localStorage.getItem('qiniu-cdn-domain') || '';
+          const cdnUrl = `${cdnDomain}/${key}`;
+          console.log('上传成功:', cdnUrl);
+          resolve(cdnUrl);
+        }
+      });
+    } catch (error) {
+      console.error('上传异常:', error);
+      reject(error);
+    }
+  });
+}
+
+/**
+ * 处理单张图片URL：下载 -> 上传 -> 返回CDN URL
+ * @param {string} imageUrl - 原始图片URL
+ * @param {number} index - 图片索引（用于生成文件名）
+ * @returns {Promise<string>} CDN URL
+ */
+async function processSingleImage(imageUrl, index = 0) {
+  try {
+    // 1. 下载图片
+    const blob = await downloadImageFromXhs(imageUrl);
+
+    // 2. 获取上传token
+    const tokenData = await getQiniuToken();
+
+    // 3. 生成文件key
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    const ext = imageUrl.match(/\.\w+($|\?)/) ?
+      imageUrl.match(/\.\w+($|\?)/)[0].split('?')[0] : '.jpg';
+    const key = `${tokenData.keyPrefix}/${timestamp}_${random}_${index}${ext}`;
+
+    // 缓存CDN域名
+    localStorage.setItem('qiniu-cdn-domain', tokenData.cdnDomain);
+
+    // 4. 上传到七牛云
+    const cdnUrl = await uploadToQiniu(blob, key, tokenData.uploadToken);
+
+    return cdnUrl;
+  } catch (error) {
+    console.error('处理图片失败:', imageUrl, error);
+    // 如果上传失败，返回原始URL作为fallback
+    return imageUrl;
+  }
+}
+
+/**
+ * 批量处理图片URLs
+ * @param {string[]} imageUrls - 图片URL数组
+ * @param {function} progressCallback - 进度回调
+ * @returns {Promise<string[]>} CDN URL数组
+ */
+async function processImageUrls(imageUrls, progressCallback = null) {
+  if (!imageUrls || imageUrls.length === 0) {
+    return [];
+  }
+
+  const results = [];
+  const total = imageUrls.length;
+
+  for (let i = 0; i < total; i++) {
+    try {
+      const cdnUrl = await processSingleImage(imageUrls[i], i);
+      results.push(cdnUrl);
+
+      if (progressCallback) {
+        progressCallback(i + 1, total, cdnUrl);
+      }
+    } catch (error) {
+      console.error(`处理第${i + 1}张图片失败:`, error);
+      // 失败时也push原始URL，保证数量一致
+      results.push(imageUrls[i]);
+    }
+  }
+
+  return results;
+}
+
+// ============================================
+// 修改后的同步函数（使用七牛云CDN URL）
+// ============================================
+
+// 同步单篇笔记到 Edit Business（使用七牛云）
+async function syncSingleNoteToFeishu() {
+  if (capturedNote === null) {
+    showStatus('没有可同步的笔记数据');
+    return;
+  }
+
+  showStatus('正在同步数据，请稍候...');
+
+  const apiKey = localStorage.getItem('edit-business-api-key');
+  if (!apiKey) {
+    showStatus('请先在设置中配置 API Key');
+    return;
+  }
+
+  try {
+    // 处理图片URLs：下载并上传到七牛云
+    let cdnImageUrls = [];
+    let cdnCoverImageUrl = '';
+    let cdnVideoUrl = '';
+
+    if (capturedNote.imageUrls) {
+      const originalUrls = capturedNote.imageUrls.split(',');
+      showStatus(`正在上传 ${originalUrls.length} 张图片到七牛云...`);
+
+      cdnImageUrls = await processImageUrls(originalUrls, (current, total, cdnUrl) => {
+        showStatus(`正在上传图片 ${current}/${total}...`);
+      });
+
+      // 第一张作为封面
+      if (cdnImageUrls.length > 0) {
+        cdnCoverImageUrl = cdnImageUrls[0];
+      }
+    }
+
+    // 处理视频（如果有）
+    if (capturedNote.videoUrl && capturedNote.videoUrl.trim() !== '') {
+      showStatus('正在处理视频...');
+      // 视频暂时保持原URL（因为视频文件较大）
+      cdnVideoUrl = capturedNote.videoUrl;
+    }
+
+    // 构建同步数据
+    const data = {
+      url: capturedNote.url,
+      title: capturedNote.title,
+      author: capturedNote.author,
+      content: capturedNote.content || '',
+      tags: capturedNote.tags ? capturedNote.tags.split(',') : [],
+      imageUrls: cdnImageUrls,
+      videoUrl: cdnVideoUrl,
+      noteType: capturedNote.noteType || (capturedNote.videoUrl ? '视频' : '图文'),
+      coverImageUrl: cdnCoverImageUrl,
+      likes: Number(capturedNote.likes || 0),
+      collects: Number(capturedNote.collects || 0),
+      comments: Number(capturedNote.comments || 0),
+      publishDate: Number(capturedNote.publishDate || Date.now()),
+      source: 'single',
+      captureTimestamp: Date.now()
+    };
+
+    showStatus('正在同步到服务器...');
+
+    const response = await fetch(API_CONFIG.BASE_URL + '/api/v1/notes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (result.code === 0 || result.success) {
+      showStatus('✅ 同步成功！图片已上传到七牛云');
+      // 清除token缓存，下次重新获取
+      cachedQiniuToken = null;
+    } else {
+      showStatus('同步失败：' + (result.message || '未知错误'));
+    }
+  } catch (error) {
+    console.error('同步失败:', error);
+    showStatus('同步失败：' + error.message);
+  }
+}
+
+// 批量同步笔记到 Edit Business（使用七牛云）
+async function syncToFeishu() {
+  if (capturedLinks.length === 0) {
+    showStatus('没有可同步的笔记数据');
+    return;
+  }
+
+  showStatus(`正在批量同步 ${capturedLinks.length} 条笔记，请稍候...`);
+
+  const apiKey = localStorage.getItem('edit-business-api-key');
+  if (!apiKey) {
+    showStatus('请先在设置中配置 API Key');
+    return;
+  }
+
+  try {
+    const notesData = [];
+
+    for (let i = 0; i < capturedLinks.length; i++) {
+      const link = capturedLinks[i];
+      showStatus(`正在处理第 ${i + 1}/${capturedLinks.length} 条笔记...`);
+
+      // 处理封面图
+      let cdnImage = link.image || '';
+      if (link.image && link.image.startsWith('http')) {
+        try {
+          cdnImage = await processSingleImage(link.image, 0);
+        } catch (error) {
+          console.error('处理封面图失败:', error);
+          // 使用原图
+        }
+      }
+
+      notesData.push({
+        url: link.url,
+        title: link.title,
+        author: link.author,
+        likes: Number(link.likes || 0),
+        image: cdnImage,
+        publishDate: Number(link.publishDate || Date.now()),
+        source: 'batch',
+        captureTimestamp: Date.now()
+      });
+    }
+
+    showStatus('正在同步到服务器...');
+
+    const response = await fetch(API_CONFIG.BASE_URL + '/api/v1/notes/batch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      },
+      body: JSON.stringify(notesData)
+    });
+
+    const result = await response.json();
+
+    if (result.code === 0 || result.success) {
+      showStatus(`✅ 同步成功！已同步 ${capturedLinks.length} 条笔记到七牛云`);
+      // 清除token缓存
+      cachedQiniuToken = null;
+    } else {
+      showStatus('同步失败：' + (result.message || '未知错误'));
+    }
+  } catch (error) {
+    console.error('批量同步失败:', error);
+    showStatus('同步失败：' + error.message);
+  }
 }

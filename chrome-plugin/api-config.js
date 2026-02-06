@@ -29,6 +29,9 @@ const API_CONFIG = {
 
         // 同步博主信息
         SYNC_BLOGGER_INFO: '/api/v1/bloggers',
+
+        // 获取七牛云上传token
+        QINIU_UPLOAD_TOKEN: '/api/v1/qiniu/upload-token',
     },
 
     // ============================================

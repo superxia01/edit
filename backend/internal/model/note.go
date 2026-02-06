@@ -1,9 +1,9 @@
 package model
 
 import (
+    "fmt"
     "time"
 
-    "github.com/google/uuid"
     "github.com/lib/pq"
     "gorm.io/gorm"
 )
@@ -13,10 +13,10 @@ import (
 // - 结构体 PascalCase
 // - JSON camelCase
 // - GORM column snake_case
-// - 主键 UUID
+// - 主键 string
 type Note struct {
-    ID              UUID              `gorm:"primaryKey;column:id;type:uuid;default:gen_random_uuid()" json:"id"`
-    UserID          UUID              `gorm:"column:user_id;type:uuid;not null;index:idx_notes_user_id" json:"userId"`
+    ID              string            `gorm:"primaryKey;column:id;type:varchar(255)" json:"id"`
+    UserID          string            `gorm:"column:user_id;type:varchar(255);not null;index" json:"userId"`
     URL             string            `gorm:"column:url;type:varchar(500);not null;index:idx_notes_url" json:"url"`
     Title           string            `gorm:"column:title;type:varchar(500)" json:"title"`
     Author          string            `gorm:"column:author;type:varchar(100)" json:"author"`
@@ -43,8 +43,8 @@ func (Note) TableName() string {
 
 // BeforeCreate GORM hook
 func (n *Note) BeforeCreate(tx *gorm.DB) error {
-    if n.ID == uuid.Nil {
-        n.ID = uuid.New()
-    }
-    return nil
+	if n.ID == "" {
+		n.ID = fmt.Sprintf("note-%d", time.Now().UnixNano())
+	}
+	return nil
 }

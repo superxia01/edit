@@ -3,6 +3,8 @@ package router
 import (
 	"github.com/keenchase/edit-business/internal/handler"
 	"github.com/keenchase/edit-business/internal/middleware"
+	"github.com/keenchase/edit-business/internal/repository"
+	"github.com/keenchase/edit-business/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +18,8 @@ func SetupRouter(
 	statsHandler *handler.StatsHandler,
 	apiKeyHandler *handler.APIKeyHandler,
 	userSettingsHandler *handler.UserSettingsHandler,
+	authCenterService *service.AuthCenterService,
+	userRepo *repository.UserRepository,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -40,8 +44,9 @@ func SetupRouter(
 			auth.GET("/wechat/callback", authHandler.WechatCallback)
 		}
 
-		// 用户信息路由（支持 auth-center token，无需 JWT）
-		v1.GET("/user/me", authHandler.Me)
+		// 用户信息路由（使用 AuthCenterMiddleware 验证 auth-center token）
+		v1.GET("/user/me", middleware.AuthCenterMiddleware(authCenterService, userRepo), authHandler.Me)
+		v1.GET("/users/me", middleware.AuthCenterMiddleware(authCenterService, userRepo), authHandler.Me) // 别名，兼容旧代码
 
 		// 笔记相关路由
 		notes := v1.Group("/notes")
@@ -51,9 +56,9 @@ func SetupRouter(
 			notes.POST("", noteHandler.Create)
 			notes.POST("/batch", noteHandler.BatchCreate)
 
-			// 查询/删除接口（需要JWT认证）
+			// 查询/删除接口（需要认证）
 			notesAuth := notes.Group("")
-			notesAuth.Use(middleware.JWTAuth())
+			notesAuth.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 			{
 				notesAuth.GET("", noteHandler.List)
 				notesAuth.GET("/:id", noteHandler.GetByID)
@@ -71,9 +76,9 @@ func SetupRouter(
 			bloggers.POST("/batch", bloggerHandler.BatchCreate)
 			bloggers.POST("/upsert", bloggerHandler.UpsertByXhsID)
 
-			// 查询/删除接口（需要JWT认证）
+			// 查询/删除接口（需要认证）
 			bloggersAuth := bloggers.Group("")
-			bloggersAuth.Use(middleware.JWTAuth())
+			bloggersAuth.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 			{
 				bloggersAuth.GET("", bloggerHandler.List)
 				bloggersAuth.GET("/:id", bloggerHandler.GetByID)
@@ -85,7 +90,7 @@ func SetupRouter(
 
 		// 用户相关路由（需要认证）
 		users := v1.Group("/users")
-		users.Use(middleware.JWTAuth())
+		users.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 		{
 			users.POST("", userHandler.Create)
 			users.GET("/sync/:authCenterUserId", userHandler.SyncUserFromAuthCenter)
@@ -97,14 +102,14 @@ func SetupRouter(
 
 		// 统计数据路由（需要认证）
 		stats := v1.Group("/stats")
-		stats.Use(middleware.JWTAuth())
+		stats.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 		{
 			stats.GET("", statsHandler.GetStats)
 		}
 
-		// API Key管理路由（需要JWT认证）
+		// API Key管理路由（需要认证）
 		apiKeys := v1.Group("/api-keys")
-		apiKeys.Use(middleware.JWTAuth())
+		apiKeys.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 		{
 			apiKeys.POST("", apiKeyHandler.Create)
 			apiKeys.GET("", apiKeyHandler.List)
@@ -121,9 +126,9 @@ func SetupRouter(
 			apiKeysValidate.GET("/validate", apiKeyHandler.Validate) // 验证 API Key
 		}
 
-		// 用户设置路由（需要JWT认证）
+		// 用户设置路由（需要认证）
 		userSettings := v1.Group("/user-settings")
-		userSettings.Use(middleware.JWTAuth())
+		userSettings.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
 		{
 			userSettings.GET("", userSettingsHandler.GetOrCreate)
 			userSettings.POST("/toggle-collection", userSettingsHandler.ToggleCollectionEnabled)

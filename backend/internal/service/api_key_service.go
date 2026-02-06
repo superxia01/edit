@@ -21,7 +21,7 @@ func (s *APIKeyService) GetOrCreateAPIKey(userID string) (*APIKeyResponse, error
 		// Return first existing key
 		apiKey := apiKeys[0]
 		return &APIKeyResponse{
-			ID:        apiKey.ID.String(),
+			ID:        apiKey.ID,
 			Name:      apiKey.Name,
 			Key:       apiKey.Key,
 			IsActive:  apiKey.IsActive,
@@ -53,7 +53,7 @@ func (s *APIKeyService) GetOrCreateAPIKey(userID string) (*APIKeyResponse, error
 	}
 
 	return &APIKeyResponse{
-		ID:        apiKey.ID.String(),
+		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Key:       keyString,
 		IsActive:  apiKey.IsActive,
@@ -102,7 +102,7 @@ func (s *APIKeyService) Create(authCenterUserID string, req CreateAPIKeyRequest)
 	}
 
 	// Check if user already has an API key (max 1 per user)
-	count, err := s.apiKeyRepo.CountByUserID(user.ID.String())
+	count, err := s.apiKeyRepo.CountByUserID(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (s *APIKeyService) Create(authCenterUserID string, req CreateAPIKeyRequest)
 	}
 
 	return &APIKeyResponse{
-		ID:        apiKey.ID.String(),
+		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Key:       keyString, // Only return the key on creation
 		IsActive:  apiKey.IsActive,
@@ -150,7 +150,7 @@ func (s *APIKeyService) List(authCenterUserID string) ([]APIKeyResponse, error) 
 		return nil, err
 	}
 
-	apiKeys, err := s.apiKeyRepo.GetByUserID(user.ID.String())
+	apiKeys, err := s.apiKeyRepo.GetByUserID(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (s *APIKeyService) List(authCenterUserID string) ([]APIKeyResponse, error) 
 	responses := make([]APIKeyResponse, len(apiKeys))
 	for i, apiKey := range apiKeys {
 		responses[i] = APIKeyResponse{
-			ID:        apiKey.ID.String(),
+			ID:        apiKey.ID,
 			Name:      apiKey.Name,
 			Key:       maskAPIKey(apiKey.Key),
 			IsActive:  apiKey.IsActive,
@@ -178,7 +178,7 @@ func (s *APIKeyService) GetStats(authCenterUserID string) (*repository.APIKeySta
 		return nil, err
 	}
 
-	return s.apiKeyRepo.GetStats(user.ID.String())
+	return s.apiKeyRepo.GetStats(user.ID)
 }
 
 // Delete deletes an API key
@@ -238,9 +238,9 @@ func (s *APIKeyService) ValidateAPIKey(key string) (string, error) {
 	}
 
 	// Update last used timestamp
-	go s.apiKeyRepo.UpdateLastUsed(apiKey.ID.String())
+	go s.apiKeyRepo.UpdateLastUsed(apiKey.ID)
 
-	return apiKey.UserID.String(), nil
+	return apiKey.UserID, nil
 }
 
 // ValidateAPIKeyWithAuthCenterID validates an API key and returns both user ID and auth center user ID
@@ -256,15 +256,15 @@ func (s *APIKeyService) ValidateAPIKeyWithAuthCenterID(key string) (string, stri
 	}
 
 	// Get user to retrieve authCenterUserID
-	user, err := s.userRepo.GetByID(apiKey.UserID.String())
+	user, err := s.userRepo.GetByID(apiKey.UserID)
 	if err != nil {
 		return "", "", ErrInvalidAPIKey
 	}
 
 	// Update last used timestamp
-	go s.apiKeyRepo.UpdateLastUsed(apiKey.ID.String())
+	go s.apiKeyRepo.UpdateLastUsed(apiKey.ID)
 
-	return apiKey.UserID.String(), user.AuthCenterUserID.String(), nil
+	return apiKey.UserID, user.AuthCenterUserID, nil
 }
 
 // maskAPIKey masks the API key for display (only show first 8 and last 4 characters)

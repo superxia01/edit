@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/google/uuid"
 	"github.com/keenchase/edit-business/internal/model"
 	"github.com/keenchase/edit-business/internal/repository"
 )
@@ -25,13 +24,8 @@ type CreateUserRequest struct {
 
 // Create 创建用户
 func (s *UserService) Create(req *CreateUserRequest) (*model.User, error) {
-	parsedUUID, err := uuid.Parse(req.AuthCenterUserID)
-	if err != nil {
-		return nil, err
-	}
-
 	user := &model.User{
-		AuthCenterUserID: parsedUUID,
+		AuthCenterUserID: req.AuthCenterUserID, // 直接使用字符串
 		Role:             req.Role,
 		Profile:          req.Profile,
 	}
@@ -40,7 +34,7 @@ func (s *UserService) Create(req *CreateUserRequest) (*model.User, error) {
 		user.Role = "USER"
 	}
 
-	err = s.userRepo.Create(user)
+	err := s.userRepo.Create(user)
 	if err != nil {
 		return nil, err
 	}
@@ -60,39 +54,38 @@ func (s *UserService) GetByAuthCenterUserID(authCenterUserID string) (*model.Use
 
 // SyncUserFromAuthCenter 从账号中心同步用户信息
 func (s *UserService) SyncUserFromAuthCenter(authCenterUserID string, nickname interface{}, headimgurl interface{}) (*model.User, error) {
-	parsedUUID, err := uuid.Parse(authCenterUserID)
-	if err != nil {
-		return nil, err
-	}
-
 	// 尝试获取现有用户
-	existingUser, err := s.userRepo.GetByAuthCenterUserID(authCenterUserID)
-	var profile map[string]interface{}
+	existingUser, err := s.GetByAuthCenterUserID(authCenterUserID)
 
-	if err == nil && existingUser != nil {
-		// 用户已存在，使用现有的 profile（如果为 nil 则初始化）
-		profile = existingUser.Profile
-		if profile == nil {
-			profile = make(map[string]interface{})
+	// 将 interface{} 转换为 *string
+	var nicknameStr *string
+	if nickname != nil {
+		if str, ok := nickname.(string); ok && str != "" {
+			nicknameStr = &str
 		}
 	}
-	// 如果是新用户或 profile 为空，初始化
-	if profile == nil {
-		profile = make(map[string]interface{})
-	}
 
-	// 更新 profile 中的字段（如果提供了新值）
-	if nickname != nil {
-		profile["nickname"] = nickname
-	}
+	var avatarURLStr *string
 	if headimgurl != nil {
-		profile["headimgurl"] = headimgurl
+		if str, ok := headimgurl.(string); ok && str != "" {
+			avatarURLStr = &str
+		}
 	}
 
-	user := &model.User{
-		AuthCenterUserID: parsedUUID,
-		Role:             "USER",
-		Profile:          profile,
+	var user *model.User
+	if err == nil && existingUser != nil {
+		// 用户已存在，更新独立字段
+		user = existingUser
+		user.Nickname = nicknameStr
+		user.AvatarURL = avatarURLStr
+	} else {
+		// 新用户（和 PR 系统一样，直接使用字符串）
+		user = &model.User{
+			AuthCenterUserID: authCenterUserID, // 直接使用字符串
+			Role:             "USER",
+			Nickname:         nicknameStr,
+			AvatarURL:        avatarURLStr,
+		}
 	}
 
 	err = s.userRepo.UpsertByAuthCenterUserID(user)

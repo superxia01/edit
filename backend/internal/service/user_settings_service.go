@@ -41,7 +41,7 @@ func (s *UserSettingsService) IsCollectionEnabled(authCenterUserID string) (bool
 		return false, err
 	}
 
-	settings, err := s.settingsRepo.GetByUserID(user.ID.String())
+	settings, err := s.settingsRepo.GetByUserID(user.ID)
 	if err != nil {
 		return false, err
 	}
@@ -83,7 +83,7 @@ func (s *UserSettingsService) CheckCollectionLimits(authCenterUserID string, bat
 		return err
 	}
 
-	settings, err := s.settingsRepo.GetByUserID(user.ID.String())
+	settings, err := s.settingsRepo.GetByUserID(user.ID)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (s *UserSettingsService) CheckCollectionLimits(authCenterUserID string, bat
 	}
 
 	// Check daily limit
-	dailyCount, err := s.noteRepo.CountByUserAndDate(user.ID.String(), "")
+	dailyCount, err := s.noteRepo.CountByUserAndDate(user.ID, "")
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ type UserSettingsResponse struct {
 // ToResponse converts model to response
 func (s *UserSettingsService) ToResponse(settings *model.UserSettings) UserSettingsResponse {
 	return UserSettingsResponse{
-		UserID:               settings.UserID.String(),
+		UserID:               settings.UserID,
 		CollectionEnabled:    settings.CollectionEnabled,
 		CollectionDailyLimit: settings.CollectionDailyLimit,
 		CollectionBatchLimit: settings.CollectionBatchLimit,

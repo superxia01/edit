@@ -45,6 +45,7 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	statsService := service.NewStatsService(noteRepo, bloggerRepo)
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, userRepo)
+	authCenterService := service.NewAuthCenterService() // 账号中心服务
 
 	// 初始化处理器
 	noteHandler := handler.NewNoteHandler(noteService)
@@ -57,7 +58,13 @@ func main() {
 
 	// 设置路由
 	gin.SetMode(gin.ReleaseMode)
-	router := router.SetupRouter(noteHandler, bloggerHandler, userHandler, authHandler, statsHandler, apiKeyHandler, userSettingsHandler)
+	router := router.SetupRouter(noteHandler, bloggerHandler, userHandler, authHandler, statsHandler, apiKeyHandler, userSettingsHandler, authCenterService, userRepo)
+
+	// 打印路由信息
+	log.Printf("Router initialized. Registered routes:")
+	for _, route := range router.Routes() {
+		log.Printf("  %s %s", route.Method, route.Path)
+	}
 
 	// 启动服务器
 	addr := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)

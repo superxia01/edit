@@ -3,7 +3,6 @@ package repository
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/keenchase/edit-business/internal/model"
 	"gorm.io/gorm"
 )
@@ -24,14 +23,9 @@ func (r *UserSettingsRepository) GetByUserID(userID string) (*model.UserSettings
 	err := r.db.Where("user_id = ?", userID).First(&settings).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// Parse userID as UUID
-			parsedUUID, err := uuid.Parse(userID)
-			if err != nil {
-				return nil, err
-			}
 			// Return default settings if not found
 			return &model.UserSettings{
-				UserID:               model.UUID(parsedUUID),
+				UserID:               userID, // 直接使用字符串
 				CollectionEnabled:    false,
 				CollectionDailyLimit: 500,
 				CollectionBatchLimit: 50,

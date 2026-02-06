@@ -143,7 +143,7 @@ func (r *NoteRepository) Update(note *model.Note) error {
 // 如果记录不存在，创建新记录
 func (r *NoteRepository) Upsert(note *model.Note) (*model.Note, error) {
 	// 查找是否存在相同 user_id + url 的记录
-	existing, err := r.GetByUserIDAndURL(note.UserID.String(), note.URL)
+	existing, err := r.GetByUserIDAndURL(note.UserID, note.URL)
 
 	if err != nil {
 		// 记录不存在，创建新记录

@@ -127,22 +127,38 @@ export function NotesListPage() {
         }
 
         if (hasImages) {
-          const coverImage = row.original.coverImageUrl || (row.original.imageUrls && row.original.imageUrls[0])
+          const imageUrls = row.original.imageUrls || []
+          const coverImage = row.original.coverImageUrl || imageUrls[0]
+
           return (
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <img
-                  src={coverImage}
-                  alt="封面"
-                  className="w-12 h-12 rounded object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"%3Erect fill="%23ccc" width="48" height="48"/%3E%3C/svg%3E'
-                  }}
-                />
+            <div className="flex flex-col gap-1">
+              {coverImage && (
+                <a
+                  href={coverImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <ImageIcon className="w-3 h-3" />
+                  封面图
+                </a>
+              )}
+              {imageUrls.slice(0, 3).map((url, index) => (
+                <a
+                  key={index}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  内页图{index + 1}
+                </a>
+              ))}
+              {imageUrls.length > 3 && (
                 <span className="text-xs text-muted-foreground">
-                  {row.original.imageUrls.length}图
+                  共{imageUrls.length}张
                 </span>
-              </div>
+              )}
             </div>
           )
         }

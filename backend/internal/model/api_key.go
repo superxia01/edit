@@ -3,20 +3,19 @@ package model
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // APIKey represents an API key for plugin authentication
 type APIKey struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_api_keys_user_id" json:"userId"`
-	Name      string    `gorm:"type:varchar(255);not null" json:"name"`
-	Key       string    `gorm:"type:varchar(255);not null;uniqueIndex" json:"key"` // hashed value
-	IsActive  bool      `gorm:"type:boolean;not null;default:true" json:"isActive"`
-	LastUsed  *time.Time `json:"lastUsed"`
-	ExpiresAt *time.Time `json:"expiresAt"`
-	CreatedAt time.Time `gorm:"not null;default:now()" json:"createdAt"`
+	ID        string    `gorm:"primaryKey;column:id;type:varchar(255)" json:"id"`
+	UserID    string    `gorm:"column:user_id;type:varchar(255);not null;index" json:"userId"`
+	Name      string    `gorm:"column:name;type:varchar(255);not null" json:"name"`
+	Key       string    `gorm:"column:key;type:varchar(255);not null;uniqueIndex" json:"key"` // hashed value
+	IsActive  bool      `gorm:"column:is_active;type:boolean;not null;default:true" json:"isActive"`
+	LastUsed  *time.Time `gorm:"column:last_used" json:"lastUsed"`
+	ExpiresAt *time.Time `gorm:"column:expires_at" json:"expiresAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;default:now()" json:"createdAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 

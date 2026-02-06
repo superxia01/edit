@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
-	"time"
 
 	"github.com/keenchase/edit-business/internal/middleware"
 	"github.com/keenchase/edit-business/internal/service"
@@ -136,7 +133,7 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 	}
 
 	// 生成 JWT token（本地系统的 token）
-	jwtToken, err := middleware.GenerateToken(user.ID.String())
+	jwtToken, err := middleware.GenerateToken(user.ID)
 	if err != nil {
 		InternalError(c, "生成令牌失败")
 		return
@@ -148,210 +145,54 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 	})
 }
 
-// WechatCallback 微信登录回调（接收账号中心回调）
+// WechatCallback 微信登录回调（V3.1 统一 Token 模式）
 // @Summary 微信登录回调
-// @Description 接收账号中心回调的code，换取token并创建本地用户
+// @Description 接收账号中心回调的token，重定向到前端
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param code query string true "微信授权码"
-// @Param type query string true "登录类型 (open/mp)"
+// @Param token query string true "Auth-Center Token"
 // @Success 302 {string} string "重定向到前端"
 // @Router /api/v1/auth/wechat/callback [get]
 func (h *AuthHandler) WechatCallback(c *gin.Context) {
-	code := c.Query("code")
-	loginType := c.Query("type") // "open" (开放平台) 或 "mp" (公众号)
+	token := c.Query("token")
 
-	// 验证参数
-	if code == "" {
-		c.Redirect(http.StatusFound, "/login?error=missing_code")
+	// V3.1: 验证 token 参数
+	if token == "" {
+		c.Redirect(http.StatusFound, "/login?error=missing_token")
 		return
 	}
 
-	// 调用账号中心的微信登录API，用code换取token和用户信息
-	// POST https://os.crazyaigc.com/api/auth/wechat/login
-	// Body: {"code": "xxx", "type": "open"}
-	loginReqBody, _ := json.Marshal(map[string]string{
-		"code": code,
-		"type": loginType,
-	})
-
-	// 创建带超时的HTTP客户端
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	loginResp, err := client.Post(
-		"https://os.crazyaigc.com/api/auth/wechat/login",
-		"application/json",
-		bytes.NewBuffer(loginReqBody),
-	)
-	if err != nil {
-		fmt.Printf("ERROR: 调用账号中心失败: %v\n", err)
-		c.Redirect(http.StatusFound, "/login?error=auth_center_failed")
-		return
-	}
-	defer loginResp.Body.Close()
-
-	var loginResult struct {
-		Success bool `json:"success"`
-		Data    struct {
-			UserID      string                 `json:"userId"`
-			Token       string                 `json:"token"`
-			UnionID     string                 `json:"unionId"`
-			PhoneNumber string                 `json:"phoneNumber"`
-			Profile     map[string]interface{} `json:"profile"`
-		} `json:"data"`
-		Message string `json:"message"`
-	}
-	if err := json.NewDecoder(loginResp.Body).Decode(&loginResult); err != nil {
-		fmt.Printf("ERROR: 解析响应失败: %v\n", err)
-		c.Redirect(http.StatusFound, "/login?error=decode_failed")
-		return
-	}
-
-	if !loginResult.Success {
-		fmt.Printf("ERROR: 账号中心返回错误: %s\n", loginResult.Message)
-		// URL编码错误信息
-	 errorMsg := url.QueryEscape(loginResult.Message)
-		c.Redirect(http.StatusFound, "/login?error="+errorMsg)
-		return
-	}
-
-	// 从 profile 获取用户信息
-	var nickname, avatarUrl interface{}
-	if loginResult.Data.Profile != nil {
-		nickname = loginResult.Data.Profile["nickname"]
-		avatarUrl = loginResult.Data.Profile["avatarUrl"]
-	}
-
-	// 创建或获取本地用户
-	user, err := h.userService.SyncUserFromAuthCenter(loginResult.Data.UserID, nickname, avatarUrl)
-	if err != nil {
-		fmt.Printf("ERROR: 创建用户失败: %v\n", err)
-		c.Redirect(http.StatusFound, "/login?error=user_creation_failed")
-		return
-	}
-
-	// 生成本地 JWT token
-	jwtToken, err := middleware.GenerateToken(user.ID.String())
-	if err != nil {
-		fmt.Printf("ERROR: 生成token失败: %v\n", err)
-		c.Redirect(http.StatusFound, "/login?error=token_generation_failed")
-		return
-	}
-
-	// 设置 cookie
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(
-		"token",
-		jwtToken,
-		3600*24*7, // 7天
-		"/",
-		".crazyaigc.com",
-		true,  // HTTPS only
-		true,  // httpOnly
-	)
-
-	// 重定向到前端
-	c.Redirect(http.StatusFound, "/dashboard")
+	// ✅ 直接重定向到前端页面，带上 token 参数
+	// 前端会调用 /api/v1/user/me 来验证 token 并获取用户信息
+	frontendURL := fmt.Sprintf("https://edit.crazyaigc.com/auth/callback?token=%s", token)
+	c.Redirect(http.StatusFound, frontendURL)
 }
 
-// Me 获取当前用户信息（支持 auth-center token 用于微信内登录）
+// Me 获取当前用户信息（使用 AuthCenterMiddleware）
 // @Summary 获取当前用户
-// @Description 获取当前登录用户的信息，支持 auth-center token
+// @Description 获取当前登录用户的信息，AuthCenterMiddleware 已经处理了认证
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Success 200 {object} Response
 // @Router /api/v1/user/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
-	// 从 Authorization header 获取 token
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		Unauthorized(c, "未提供认证令牌")
-		return
-	}
+	// AuthCenterMiddleware 已经处理了：
+	//   1. 验证 auth-center token
+	//   2. 获取/创建本地用户
+	//   3. 存入上下文 ("user" 和 "userId")
 
-	// 解析 Bearer token
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		Unauthorized(c, "令牌格式错误")
-		return
-	}
-
-	authCenterToken := parts[1]
-
-	// 调用 auth-center API 获取用户信息
-	// GET https://os.crazyaigc.com/api/auth/user-info
-	println("DEBUG: 微信内登录 - 调用 auth-center /api/auth/user-info")
-	println("DEBUG: Token = ", authCenterToken[:20]+"...")
-
-	req, _ := http.NewRequest("GET", "https://os.crazyaigc.com/api/auth/user-info", nil)
-	req.Header.Set("Authorization", "Bearer "+authCenterToken)
-
-	userInfoResp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		println("ERROR: 调用 auth-center /api/auth/user-info 失败: ", err.Error())
-		InternalError(c, "调用账号中心失败")
-		return
-	}
-	defer userInfoResp.Body.Close()
-
-	var userInfoResult struct {
-		Success bool `json:"success"`
-		Data    struct {
-			UserID  string                 `json:"userId"`
-			Profile map[string]interface{} `json:"profile"`
-		} `json:"data"`
-		Message string `json:"message"`
-	}
-	if err := json.NewDecoder(userInfoResp.Body).Decode(&userInfoResult); err != nil {
-		println("ERROR: 解析 auth-center 响应失败: ", err.Error())
-		InternalError(c, "解析响应失败")
-		return
-	}
-
-	println("DEBUG: auth-center /api/auth/user-info 响应:")
-	println("  Success: ", userInfoResult.Success)
-	println("  Message: ", userInfoResult.Message)
-	if userInfoResult.Success {
-		println("  UserID: ", userInfoResult.Data.UserID)
-		if userInfoResult.Data.Profile != nil {
-			println("  Nickname: ", userInfoResult.Data.Profile["nickname"])
-			println("  AvatarUrl: ", userInfoResult.Data.Profile["avatarUrl"])
-		}
-	}
-
-	if !userInfoResult.Success {
-		Unauthorized(c, userInfoResult.Message)
-		return
-	}
-
-	// 从 profile 获取用户信息
-	var nickname, headimgurl interface{}
-	if userInfoResult.Data.Profile != nil {
-		nickname = userInfoResult.Data.Profile["nickname"]
-		headimgurl = userInfoResult.Data.Profile["avatarUrl"]
-	}
-
-	// 同步或创建用户
-	user, err := h.userService.SyncUserFromAuthCenter(userInfoResult.Data.UserID, nickname, headimgurl)
-	if err != nil {
-		InternalError(c, "创建用户失败")
-		return
-	}
-
-	// 生成本地 JWT token
-	jwtToken, err := middleware.GenerateToken(user.ID.String())
-	if err != nil {
-		InternalError(c, "生成令牌失败")
+	// 直接从上下文获取用户信息
+	user, exists := c.Get("user")
+	if !exists {
+		Unauthorized(c, "用户未登录")
 		return
 	}
 
 	SuccessResponse(c, gin.H{
-		"token": jwtToken,
-		"user":  user,
+		"success": true,
+		"data":    user,
 	})
 }
 

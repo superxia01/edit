@@ -120,7 +120,7 @@ func (h *APIKeyHandler) List(c *gin.Context) {
 // @Failure 500 {object} handler.Response
 // @Router /api/v1/api-keys/get-or-create [get]
 func (h *APIKeyHandler) GetOrCreate(c *gin.Context) {
-	userID, exists := c.Get("userId")
+	authCenterUserID, exists := c.Get("authCenterUserID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, Response{
 			Code:    401,
@@ -129,7 +129,7 @@ func (h *APIKeyHandler) GetOrCreate(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := h.apiKeyService.GetOrCreateAPIKey(userID.(string))
+	apiKey, err := h.apiKeyService.GetOrCreateAPIKey(authCenterUserID.(string))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{
 			Code:    500,

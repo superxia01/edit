@@ -128,36 +128,38 @@ export function NotesListPage() {
 
         if (hasImages) {
           const imageUrls = row.original.imageUrls || []
-          const coverImage = row.original.coverImageUrl || imageUrls[0]
 
           return (
-            <div className="flex flex-col gap-1">
-              {coverImage && (
-                <a
-                  href={coverImage}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                >
-                  <ImageIcon className="w-3 h-3" />
-                  封面图
-                </a>
-              )}
-              {imageUrls.slice(0, 3).map((url, index) => (
-                <a
-                  key={index}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  内页图{index + 1}
-                </a>
-              ))}
-              {imageUrls.length > 3 && (
-                <span className="text-xs text-muted-foreground">
-                  共{imageUrls.length}张
-                </span>
+            <div className="flex gap-1 flex-wrap max-w-[200px]">
+              {imageUrls.slice(0, 4).map((url, index) => {
+                // 七牛云图片处理：添加缩略图参数
+                const thumbnailUrl = url.includes('cdn.crazyaigc.com')
+                  ? `${url}?imageView2/2/w/100/h/100`
+                  : url
+
+                return (
+                  <a
+                    key={index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative group"
+                    title="点击查看大图"
+                  >
+                    <img
+                      src={thumbnailUrl}
+                      alt={`图片${index + 1}`}
+                      className="w-12 h-12 object-cover rounded border border-gray-200 hover:border-blue-500 transition-colors"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded" />
+                  </a>
+                )
+              })}
+              {imageUrls.length > 4 && (
+                <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded border border-gray-200 text-xs text-gray-600">
+                  +{imageUrls.length - 4}
+                </div>
               )}
             </div>
           )

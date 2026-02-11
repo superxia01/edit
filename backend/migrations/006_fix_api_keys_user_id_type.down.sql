@@ -1,0 +1,6 @@
+-- Rollback: revert api_keys.user_id to UUID (only if users.id is UUID)
+-- Note: This may fail if users.id is already VARCHAR
+-- ALTER TABLE api_keys DROP CONSTRAINT IF EXISTS api_keys_user_id_fkey;
+-- ALTER TABLE api_keys ALTER COLUMN user_id TYPE UUID USING user_id::UUID;
+-- ALTER TABLE api_keys ADD CONSTRAINT api_keys_user_id_fkey 
+--   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;

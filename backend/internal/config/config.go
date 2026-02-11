@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // Config 应用配置
@@ -21,6 +22,9 @@ type Config struct {
 
 	// 账号中心配置
 	AuthCenterURL string
+
+	// 管理后台：管理员 auth_center_user_id 列表，逗号分隔
+	AdminAuthCenterUserIDs []string
 }
 
 // LoadConfig 从环境变量加载配置
@@ -39,7 +43,26 @@ func LoadConfig() *Config {
 
 		// 账号中心 URL
 		AuthCenterURL: getEnv("AUTH_CENTER_URL", "https://os.crazyaigc.com"),
+
+		// 管理后台：EDIT_ADMIN_AUTH_CENTER_USER_IDS=id1,id2,id3
+		AdminAuthCenterUserIDs: parseAdminIDs(getEnv("EDIT_ADMIN_AUTH_CENTER_USER_IDS", "")),
 	}
+}
+
+// parseAdminIDs 解析逗号分隔的 admin IDs
+func parseAdminIDs(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	var ids []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			ids = append(ids, p)
+		}
+	}
+	return ids
 }
 
 // GetDSN 获取数据库连接字符串

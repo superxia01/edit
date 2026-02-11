@@ -11,7 +11,16 @@ import (
 var (
 	ErrMaxAPIKeysReached = errors.New("each user can only have one API key")
 	ErrInvalidAPIKey     = errors.New("invalid API key")
+	ErrAPIKeyNotFound    = errors.New("API key not found, please contact admin")
 )
+
+// GetOrCreateAPIKeyByUser gets or creates API key using the user object directly (avoids lookup race for new users)
+func (s *APIKeyService) GetOrCreateAPIKeyByUser(user *model.User) (*APIKeyResponse, error) {
+	if user == nil || user.ID == "" {
+		return nil, errors.New("invalid user")
+	}
+	return s.getOrCreateByUserID(user.ID)
+}
 
 // GetOrCreateAPIKey gets existing API key or creates a new one for the user
 func (s *APIKeyService) GetOrCreateAPIKey(authCenterUserID string) (*APIKeyResponse, error) {
@@ -20,46 +29,29 @@ func (s *APIKeyService) GetOrCreateAPIKey(authCenterUserID string) (*APIKeyRespo
 	if err != nil {
 		return nil, err
 	}
+	return s.getOrCreateByUserID(user.ID)
+}
 
-	// Try to get existing API key by user ID
-	apiKeys, err := s.apiKeyRepo.GetByUserID(user.ID)
-	if err == nil && len(apiKeys) > 0 {
-		// Return first existing key
-		apiKey := apiKeys[0]
-		return &APIKeyResponse{
-			ID:        apiKey.ID,
-			Name:      apiKey.Name,
-			Key:       apiKey.Key,
-			IsActive:  apiKey.IsActive,
-			LastUsed:  apiKey.LastUsed,
-			ExpiresAt: apiKey.ExpiresAt,
-			CreatedAt: apiKey.CreatedAt,
-		}, nil
-	}
-
-	// No API key exists, create one automatically
-	keyString := s.apiKeyRepo.GenerateKey()
-
-	apiKey := &model.APIKey{
-		UserID:    user.ID,
-		Name:      "默认API Key",
-		Key:       keyString,
-		IsActive:  true,
-		// No expiration
-	}
-
-	if err := s.apiKeyRepo.Create(apiKey); err != nil {
+func (s *APIKeyService) getOrCreateByUserID(userID string) (*APIKeyResponse, error) {
+	// 仅获取，不再自动创建。无 API Key 时返回 ErrAPIKeyNotFound
+	apiKeys, err := s.apiKeyRepo.GetByUserID(userID)
+	if err != nil {
 		return nil, err
 	}
-
-	return &APIKeyResponse{
-		ID:        apiKey.ID,
-		Name:      apiKey.Name,
-		Key:       keyString,
-		IsActive:  apiKey.IsActive,
-		ExpiresAt: apiKey.ExpiresAt,
-		CreatedAt: apiKey.CreatedAt,
-	}, nil
+	for _, apiKey := range apiKeys {
+		if apiKey.IsActive {
+			return &APIKeyResponse{
+				ID:        apiKey.ID,
+				Name:      apiKey.Name,
+				Key:       apiKey.Key,
+				IsActive:  apiKey.IsActive,
+				LastUsed:  apiKey.LastUsed,
+				ExpiresAt: apiKey.ExpiresAt,
+				CreatedAt: apiKey.CreatedAt,
+			}, nil
+		}
+	}
+	return nil, ErrAPIKeyNotFound
 }
 
 // APIKeyService handles API key business logic
@@ -91,6 +83,42 @@ type APIKeyResponse struct {
 	LastUsed  *time.Time  `json:"lastUsed"`
 	ExpiresAt *time.Time  `json:"expiresAt"`
 	CreatedAt time.Time   `json:"createdAt"`
+}
+
+// CreateForUserID 管理员为指定用户创建 API Key（支持设置有效期，expiresIn 为天数，nil 表示永不过期）
+func (s *APIKeyService) CreateForUserID(userID string, expiresIn *int) (*APIKeyResponse, error) {
+	// 先停用已过期的 Key，便于在旧 Key 过期后管理员可重新生成
+	_ = s.apiKeyRepo.DeactivateExpiredForUser(userID)
+
+	count, err := s.apiKeyRepo.CountByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if count >= 1 {
+		return nil, ErrMaxAPIKeysReached
+	}
+	keyString := s.apiKeyRepo.GenerateKey()
+	apiKey := &model.APIKey{
+		UserID:   userID,
+		Name:     "默认API Key",
+		Key:      keyString,
+		IsActive: true,
+	}
+	if expiresIn != nil && *expiresIn > 0 {
+		expires := time.Now().AddDate(0, 0, *expiresIn)
+		apiKey.ExpiresAt = &expires
+	}
+	if err := s.apiKeyRepo.Create(apiKey); err != nil {
+		return nil, err
+	}
+	return &APIKeyResponse{
+		ID:        apiKey.ID,
+		Name:      apiKey.Name,
+		Key:       keyString,
+		IsActive:  apiKey.IsActive,
+		ExpiresAt: apiKey.ExpiresAt,
+		CreatedAt: apiKey.CreatedAt,
+	}, nil
 }
 
 // Create creates a new API key for a user

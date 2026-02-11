@@ -73,6 +73,18 @@ func (r *APIKeyRepository) Deactivate(id string) error {
 	return r.db.Model(&model.APIKey{}).Where("id = ?", id).Update("is_active", false).Error
 }
 
+// UpdateExpiresAt 更新 API Key 有效期（expiresAt 为 nil 表示永不过期）
+func (r *APIKeyRepository) UpdateExpiresAt(id string, expiresAt *time.Time) error {
+	return r.db.Model(&model.APIKey{}).Where("id = ?", id).Update("expires_at", expiresAt).Error
+}
+
+// DeactivateExpiredForUser 停用该用户所有已过期的 API Key（管理员重新生成时使用）
+func (r *APIKeyRepository) DeactivateExpiredForUser(userID string) error {
+	return r.db.Model(&model.APIKey{}).
+		Where("user_id = ? AND is_active = ? AND expires_at IS NOT NULL AND expires_at < ?", userID, true, time.Now()).
+		Update("is_active", false).Error
+}
+
 // Delete permanently deletes an API key
 func (r *APIKeyRepository) Delete(id string) error {
 	return r.db.Delete(&model.APIKey{}, "id = ?", id).Error

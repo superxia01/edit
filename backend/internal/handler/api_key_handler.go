@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/keenchase/edit-business/internal/model"
 	"github.com/keenchase/edit-business/internal/service"
 )
 
@@ -129,11 +130,28 @@ func (h *APIKeyHandler) GetOrCreate(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := h.apiKeyService.GetOrCreateAPIKey(authCenterUserID.(string))
+	// 优先使用 context 中的 user（AuthCenterMiddleware 已创建/获取），避免新用户竞态
+	var apiKey *service.APIKeyResponse
+	var err error
+	if userVal, ok := c.Get("user"); ok && userVal != nil {
+		if user, ok := userVal.(*model.User); ok && user != nil {
+			apiKey, err = h.apiKeyService.GetOrCreateAPIKeyByUser(user)
+		}
+	}
+	if apiKey == nil {
+		apiKey, err = h.apiKeyService.GetOrCreateAPIKey(authCenterUserID.(string))
+	}
 	if err != nil {
+		if err == service.ErrAPIKeyNotFound {
+			c.JSON(http.StatusNotFound, Response{
+				Code:    404,
+				Message: "尚未分配 API Key，请联系管理员",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, Response{
 			Code:    500,
-			Message: "Failed to get or create API key",
+			Message: "Failed to get API key",
 			Data:    err.Error(),
 		})
 		return

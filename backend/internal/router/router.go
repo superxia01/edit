@@ -18,9 +18,11 @@ func SetupRouter(
 	statsHandler *handler.StatsHandler,
 	apiKeyHandler *handler.APIKeyHandler,
 	userSettingsHandler *handler.UserSettingsHandler,
+	adminHandler *handler.AdminHandler,
 	qiniuHandler *handler.QiniuHandler,
 	authCenterService *service.AuthCenterService,
 	userRepo *repository.UserRepository,
+	adminAuthCenterUserIDs []string,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -43,6 +45,7 @@ func SetupRouter(
 		{
 			auth.GET("/wechat/login", authHandler.WechatLoginProxy)
 			auth.GET("/wechat/callback", authHandler.WechatCallback)
+			auth.POST("/password", authHandler.PasswordLogin)
 		}
 
 		// 用户信息路由（使用 AuthCenterMiddleware 验证 auth-center token）
@@ -133,6 +136,22 @@ func SetupRouter(
 		{
 			userSettings.GET("", userSettingsHandler.GetOrCreate)
 			userSettings.POST("/toggle-collection", userSettingsHandler.ToggleCollectionEnabled)
+		}
+
+		// 管理后台：检查是否为管理员（仅认证，不要求管理员）
+		v1.GET("/admin/check", middleware.AuthCenterMiddleware(authCenterService, userRepo), adminHandler.CheckAdmin)
+
+		// 管理后台路由（需认证 + 管理员）
+		admin := v1.Group("/admin")
+		admin.Use(middleware.AuthCenterMiddleware(authCenterService, userRepo))
+		admin.Use(middleware.AdminMiddleware(adminAuthCenterUserIDs))
+		{
+			admin.GET("/users", adminHandler.ListUsers)
+			admin.GET("/users/:id", adminHandler.GetUserDetail)
+			admin.PUT("/users/:id/settings", adminHandler.UpdateUserSettings)
+			admin.POST("/users/:id/api-keys", adminHandler.CreateAPIKeyForUser)
+			admin.PATCH("/users/:id/api-keys/:keyId/expiry", adminHandler.UpdateAPIKeyExpiry)
+			admin.GET("/stats/overview", adminHandler.GetStatsOverview)
 		}
 
 		// 七牛云相关路由（使用 API Key 认证）

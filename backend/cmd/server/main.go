@@ -55,11 +55,13 @@ func main() {
 	statsHandler := handler.NewStatsHandler(statsService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	userSettingsHandler := handler.NewUserSettingsHandler(userSettingsService)
+	adminService := service.NewAdminService(userRepo, apiKeyRepo, userSettingsRepo, noteRepo, bloggerRepo, statsService, apiKeyService)
+	adminHandler := handler.NewAdminHandler(adminService, cfg.AdminAuthCenterUserIDs)
 	qiniuHandler := handler.NewQiniuHandler()
 
 	// 设置路由
 	gin.SetMode(gin.ReleaseMode)
-	router := router.SetupRouter(noteHandler, bloggerHandler, userHandler, authHandler, statsHandler, apiKeyHandler, userSettingsHandler, qiniuHandler, authCenterService, userRepo)
+	router := router.SetupRouter(noteHandler, bloggerHandler, userHandler, authHandler, statsHandler, apiKeyHandler, userSettingsHandler, adminHandler, qiniuHandler, authCenterService, userRepo, cfg.AdminAuthCenterUserIDs)
 
 	// 打印路由信息
 	log.Printf("Router initialized. Registered routes:")

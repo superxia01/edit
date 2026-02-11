@@ -21,6 +21,7 @@ export function SettingsPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
+      setError('')
       const [apiKeyResponse, settingsResponse] = await Promise.all([
         apiKeyApi.getOrCreate(),
         userSettingsApi.getOrCreate(),
@@ -32,7 +33,13 @@ export function SettingsPage() {
         setUserSettings(settingsResponse.data)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载数据失败')
+      const msg = err instanceof Error ? err.message : '加载数据失败'
+      // 404 表示尚未分配 API Key，不作为通用错误展示
+      if (msg.includes('请联系管理员')) {
+        setApiKey(null)
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -105,7 +112,7 @@ export function SettingsPage() {
                   允许数据收藏
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  开启后，Chrome插件才能收藏数据到你的账户
+                  开启后，Chrome 插件才能收藏数据。关闭可防止 API Key 泄露后被他人采集大量垃圾笔记到你的账户。
                 </p>
               </div>
               <Switch
@@ -175,9 +182,8 @@ export function SettingsPage() {
                 </div>
 
                 <div className="text-sm text-muted-foreground space-y-2">
-                  <p>• 这是你的专属API Key，用于Chrome插件认证</p>
-                  <p>• 每个用户只有一个固定的API Key，无需手动创建</p>
-                  <p>• 请妥善保管，不要泄露给他人</p>
+                  <p>• 这是你的专属 API Key，用于 Chrome 插件认证</p>
+                  <p>• 由管理员分配，请妥善保管，不要泄露给他人</p>
                 </div>
 
                 {apiKey.lastUsed && (
@@ -187,7 +193,13 @@ export function SettingsPage() {
                 )}
               </div>
             ) : (
-              <p className="text-muted-foreground">加载失败，请刷新页面</p>
+              <div className="flex items-start gap-2 p-4 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-lg">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold">尚未分配 API Key</p>
+                  <p>请联系管理员在管理后台为你生成 API Key 后，刷新本页面即可使用。</p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

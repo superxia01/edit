@@ -251,9 +251,86 @@ export interface CreateAPIKeyRequest {
 
 // ========== API Key API ==========
 export const apiKeyApi = {
-  // 获取或自动创建API Key
+  // 获取 API Key（不再自动创建，无则 404）
   getOrCreate: () =>
     apiClient.get<any, ApiResponse<APIKey>>('/api-keys/get-or-create'),
+}
+
+// ========== Admin 相关类型 ==========
+export interface AdminUserListItem {
+  id: string
+  authCenterUserId: string
+  nickname?: string
+  avatarUrl?: string
+  role: string
+  createdAt: string
+  totalNotes: number
+  totalBloggers: number
+  hasApiKey: boolean
+}
+
+export interface AdminUserDetail {
+  user: {
+    id: string
+    authCenterUserId: string
+    nickname?: string
+    avatarUrl?: string
+    role: string
+    createdAt: string
+  }
+  stats: {
+    totalNotes: number
+    totalBloggers: number
+  }
+  settings: {
+    userId: string
+    collectionEnabled: boolean
+    collectionDailyLimit: number
+    collectionBatchLimit: number
+  }
+  apiKeys: Array<{ id: string; name: string; isActive: boolean; lastUsed?: string; expiresAt?: string | null; createdAt: string }>
+}
+
+export interface AdminListUsersResponse {
+  items: AdminUserListItem[]
+  total: number
+  page: number
+  size: number
+  totalPages: number
+}
+
+export interface AdminStatsOverview {
+  totalUsers: number
+  totalNotes: number
+  totalBloggers: number
+}
+
+// ========== Admin API ==========
+export const adminApi = {
+  checkAdmin: () =>
+    apiClient.get<any, { isAdmin: boolean }>('/admin/check'),
+
+  listUsers: (params?: { page?: number; size?: number }) =>
+    apiClient.get<any, ApiResponse<AdminListUsersResponse>>('/admin/users', { params }),
+
+  getUserDetail: (userId: string) =>
+    apiClient.get<any, ApiResponse<AdminUserDetail>>(`/admin/users/${userId}`),
+
+  createApiKeyForUser: (userId: string, data?: { expiresIn?: number }) =>
+    apiClient.post<any, ApiResponse<APIKey>>(`/admin/users/${userId}/api-keys`, data ?? {}),
+
+  updateApiKeyExpiry: (userId: string, apiKeyId: string, data?: { expiresIn?: number | null }) =>
+    apiClient.patch<any, ApiResponse>(`/admin/users/${userId}/api-keys/${apiKeyId}/expiry`, data ?? {}),
+
+  updateUserSettings: (userId: string, data: {
+    collectionDailyLimit?: number
+    collectionBatchLimit?: number
+    collectionEnabled?: boolean
+  }) =>
+    apiClient.put<any, ApiResponse>(`/admin/users/${userId}/settings`, data),
+
+  getStatsOverview: () =>
+    apiClient.get<any, ApiResponse<AdminStatsOverview>>('/admin/stats/overview'),
 }
 
 // ========== User Settings 相关类型 ==========
@@ -277,6 +354,23 @@ export const userSettingsApi = {
   // 切换采集开关
   toggleCollection: (enabled: boolean) =>
     apiClient.post<any, ApiResponse<UserSettings>>('/user-settings/toggle-collection', { enabled }),
+}
+
+// ========== 认证 API ==========
+export interface PasswordLoginRequest {
+  phoneNumber: string
+  password: string
+}
+
+export interface PasswordLoginResponse {
+  success: boolean
+  data?: { token: string }
+  message?: string
+}
+
+export const authApi = {
+  passwordLogin: (data: PasswordLoginRequest) =>
+    apiClient.post<any, PasswordLoginResponse>('/auth/password', data),
 }
 
 export default apiClient

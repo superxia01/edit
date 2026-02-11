@@ -57,7 +57,7 @@ export function AuthCallbackPage() {
   }, [searchParams, navigate])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center">
         {status === 'loading' && (
           <div className="space-y-4">

@@ -109,3 +109,10 @@ func (r *BloggerRepository) Count(userID string) (int64, error) {
 	err := r.db.Model(&model.Blogger{}).Where("user_id = ?", userID).Count(&count).Error
 	return count, err
 }
+
+// TotalCount 全局博主总数（用于管理后台统计）
+func (r *BloggerRepository) TotalCount() (int64, error) {
+	var count int64
+	err := r.db.Model(&model.Blogger{}).Count(&count).Error
+	return count, err
+}

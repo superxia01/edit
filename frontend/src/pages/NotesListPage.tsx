@@ -116,6 +116,33 @@ export function NotesListPage() {
       ),
     },
     {
+      accessorKey: 'content',
+      header: '正文',
+      cell: ({ row }) => {
+        const content = row.original.content || ''
+        if (!content) return <span className="text-muted-foreground">-</span>
+        const preview = content.length > 60 ? content.slice(0, 60) + '...' : content
+        return (
+          <Dialog>
+            <DialogTrigger asChild>
+              <div
+                className="min-w-0 max-w-[200px] truncate cursor-pointer hover:text-primary hover:underline"
+                title={content}
+              >
+                {preview}
+              </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>正文内容</DialogTitle>
+              </DialogHeader>
+              <div className="whitespace-pre-wrap text-sm">{content}</div>
+            </DialogContent>
+          </Dialog>
+        )
+      },
+    },
+    {
       accessorKey: 'coverImage',
       header: '封面图',
       cell: ({ row }) => {

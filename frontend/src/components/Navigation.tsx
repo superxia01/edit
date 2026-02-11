@@ -2,11 +2,11 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { User, LogOut, Settings } from 'lucide-react'
+import { User, LogOut, Settings, Shield } from 'lucide-react'
 
 export function Navigation() {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
 
   const navItems = [
     { path: '/dashboard', label: '数据概览' },
@@ -14,6 +14,7 @@ export function Navigation() {
     { path: '/blogger-notes', label: '创作者内容' },
     { path: '/bloggers', label: '创作者列表' },
     { path: '/settings', label: '设置', icon: Settings },
+    ...(isAdmin ? [{ path: '/admin', label: '管理后台', icon: Shield }] : []),
   ]
 
   return (
@@ -21,8 +22,22 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold">内容管理工具</span>
+            <Link to="/" className="flex items-center gap-2">
+              <img
+                src="/ai-logo.png"
+                alt="KeenChase"
+                className="w-8 h-8 object-contain shrink-0"
+              />
+              <span
+                className="font-semibold text-[18px] text-[#1E3A8A] hidden sm:inline"
+                style={{ fontFamily: "'Fira Code', monospace" }}
+              >
+                CRAZYAIGC
+              </span>
+              <span className="text-muted-foreground mx-3">|</span>
+              <span className="font-medium text-foreground hidden sm:inline">
+                内容管理工具
+              </span>
             </Link>
             <div className="flex items-center gap-2">
               {navItems.map((item) => (
@@ -31,7 +46,7 @@ export function Navigation() {
                   to={item.path}
                   className={cn(
                     'px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2',
-                    location.pathname === item.path
+                    location.pathname === item.path || (item.path === '/admin' && location.pathname.startsWith('/admin'))
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
@@ -52,10 +67,12 @@ export function Navigation() {
                     <img
                       src={user.avatarUrl || user.profile?.avatarUrl || user.profile?.headimgurl}
                       alt={user.nickname || user.profile?.nickname || '用户'}
-                      className="w-8 h-8 rounded-full"
+                      className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB] object-cover"
                     />
                   ) : (
-                    <User className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                    </div>
                   )}
                   <span className="text-muted-foreground">
                     {user.nickname || user.profile?.nickname || user.authCenterUserId?.substring(0, 8)}

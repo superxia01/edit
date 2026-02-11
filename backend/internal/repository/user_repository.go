@@ -111,3 +111,28 @@ func (r *UserRepository) CreateWithAuthCenter(authCenterUserID string, unionID s
 
 	return user, nil
 }
+
+// Count 用户总数
+func (r *UserRepository) Count() (int64, error) {
+	var count int64
+	err := r.db.Model(&model.User{}).Count(&count).Error
+	return count, err
+}
+
+// ListAll 获取所有用户（用于管理后台，支持分页）
+func (r *UserRepository) ListAll(page, size int) ([]*model.User, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 20
+	}
+	var total int64
+	if err := r.db.Model(&model.User{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var users []*model.User
+	offset := (page - 1) * size
+	err := r.db.Order("created_at DESC").Offset(offset).Limit(size).Find(&users).Error
+	return users, total, err
+}

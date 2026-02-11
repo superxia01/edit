@@ -5,6 +5,10 @@ import { BloggersListPage } from '@/pages/BloggersListPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PluginDownloadPage } from '@/pages/PluginDownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AdminPage } from '@/pages/AdminPage'
+import { AdminUsersPage } from '@/pages/AdminUsersPage'
+import { AdminUserDetailPage } from '@/pages/AdminUserDetailPage'
+import { AdminStatsPage } from '@/pages/AdminStatsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 import { Navigation } from '@/components/Navigation'
@@ -34,6 +38,10 @@ function App() {
                   <Route path="bloggers" element={<BloggersListPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="plugin/download" element={<PluginDownloadPage />} />
+                  <Route path="admin" element={<AdminPage />} />
+                  <Route path="admin/users" element={<AdminUsersPage />} />
+                  <Route path="admin/users/:id" element={<AdminUserDetailPage />} />
+                  <Route path="admin/stats" element={<AdminStatsPage />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </ProtectedRoute>

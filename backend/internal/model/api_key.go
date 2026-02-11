@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -22,4 +23,12 @@ type APIKey struct {
 // TableName specifies the table name for APIKey
 func (APIKey) TableName() string {
 	return "api_keys"
+}
+
+// BeforeCreate GORM hook - generate UUID when ID is empty
+func (a *APIKey) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == "" {
+		a.ID = uuid.New().String()
+	}
+	return nil
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import apiClient from '@/api'
+import apiClient, { adminApi } from '@/api'
 
 interface User {
   id: string
@@ -15,6 +15,7 @@ interface User {
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -31,14 +32,18 @@ export function useAuth() {
     }
 
     try {
-      const response = await apiClient.get('/user/me')
-      // 兼容两种响应格式：response.data 直接是用户对象，或者 response.data.data 是用户对象
-      const userData = response.data?.data || response.data
+      const [meRes, adminRes] = await Promise.all([
+        apiClient.get('/user/me'),
+        adminApi.checkAdmin().catch(() => ({ isAdmin: false })),
+      ])
+      const userData = meRes.data?.data || meRes.data
       if (userData) {
         setUser(userData)
       }
+      if (adminRes?.isAdmin) {
+        setIsAdmin(true)
+      }
     } catch (error) {
-      // Token 无效，清除本地存储
       localStorage.removeItem('token')
       localStorage.removeItem('user')
     } finally {
@@ -60,6 +65,7 @@ export function useAuth() {
 
   return {
     user,
+    isAdmin,
     loading,
     isAuthenticated: !!user,
     login,

@@ -258,6 +258,13 @@ func (r *NoteRepository) GetStats(userID string) (*NoteStats, error) {
 	return &stats, nil
 }
 
+// TotalCount 全局笔记总数（用于管理后台统计）
+func (r *NoteRepository) TotalCount() (int64, error) {
+	var count int64
+	err := r.db.Model(&model.Note{}).Count(&count).Error
+	return count, err
+}
+
 // CountByUserAndDate counts notes by user ID and date
 func (r *NoteRepository) CountByUserAndDate(userID string, date string) (int64, error) {
 	var count int64

@@ -21,6 +21,69 @@ func NewAuthHandler(userService *service.UserService) *AuthHandler {
 	return &AuthHandler{userService: userService}
 }
 
+// PasswordLoginRequest 密码登录请求
+type PasswordLoginRequest struct {
+	PhoneNumber string `json:"phoneNumber" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+}
+
+// PasswordLogin 密码登录（调用 auth-center）
+// @Summary 手机号密码登录
+// @Description 调用账号中心验证，返回 auth-center token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body PasswordLoginRequest true "登录请求"
+// @Success 200 {object} Response
+// @Router /api/v1/auth/password [post]
+func (h *AuthHandler) PasswordLogin(c *gin.Context) {
+	var req PasswordLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		BadRequest(c, "请求参数错误")
+		return
+	}
+
+	loginReqBody, _ := json.Marshal(map[string]string{
+		"phoneNumber": req.PhoneNumber,
+		"password":    req.Password,
+	})
+
+	resp, err := http.Post(
+		"https://os.crazyaigc.com/api/auth/password/login",
+		"application/json",
+		bytes.NewBuffer(loginReqBody),
+	)
+	if err != nil {
+		InternalError(c, "认证服务异常")
+		return
+	}
+	defer resp.Body.Close()
+
+	var loginResult struct {
+		Success bool   `json:"success"`
+		Token   string `json:"token"`
+		UserID  string `json:"userId"`
+		Error   string `json:"error,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&loginResult); err != nil {
+		InternalError(c, "解析响应失败")
+		return
+	}
+
+	if !loginResult.Success {
+		errMsg := loginResult.Error
+		if errMsg == "" {
+			errMsg = "手机号或密码错误"
+		}
+		Unauthorized(c, errMsg)
+		return
+	}
+
+	SuccessResponse(c, gin.H{
+		"token": loginResult.Token,
+	})
+}
+
 // WechatLoginProxy 发起微信登录（重定向到 auth-center）
 // @Summary 发起微信登录
 // @Description 重定向到账号中心进行微信登录
